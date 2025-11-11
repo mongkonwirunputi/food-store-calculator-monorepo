@@ -1,11 +1,5 @@
 # 🚀 Setup Guide
 
-## ✅ สิ่งที่อัพเดตแล้ว
-
-1. **React**: อัพเดตเป็นเวอร์ชัน 19.2.0
-2. **NestJS**: อัพเดตเป็นเวอร์ชัน 11.0.0
-3. **Node.js**: กำหนดเป็นเวอร์ชัน 24 ใน `.nvmrc`
-4. **Dependencies**: อัพเดตทั้งหมดเป็นเวอร์ชันล่าสุด
 
 ## 📋 ขั้นตอนการ Setup
 
@@ -13,8 +7,8 @@
 
 ```bash
 # ใช้ nvm เพื่อเปลี่ยนเป็น Node.js 24
-nvm install 24
-nvm use 24
+nvm install 24.11.0
+nvm use 24.11.0
 
 # หรือใช้ nvm use โดยอัตโนมัติจาก .nvmrc
 nvm use
@@ -83,7 +77,13 @@ cat apps/frontend/env.template > apps/frontend/.env
 
 **หมายเหตุ**: ไฟล์ `.env` จะถูก ignore โดย git (ดูใน `.gitignore`) เพื่อความปลอดภัย
 
-### 6. รัน Backend
+### 6. รัน Migration + Seed
+
+```bash
+pnpm --filter @food-store-calculator/backend migrate
+```
+
+### 7. รัน Backend
 
 ```bash
 # Terminal 1
@@ -92,7 +92,7 @@ pnpm --filter @food-store-calculator/backend dev
 
 Backend จะรันที่: http://localhost:3001/api
 
-### 7. รัน Frontend
+### 8. รัน Frontend
 
 ```bash
 # Terminal 2
@@ -155,7 +155,7 @@ pnpm --filter @food-store-calculator/shared build
 
 ## 📝 Notes
 
-- **Node.js 24**: ต้องใช้ Node.js เวอร์ชัน 24 ขึ้นไป (ตาม `.nvmrc`)
+- **Node.js**: ต้องใช้ Node.js เวอร์ชัน 24 ขึ้นไป (ตาม `.nvmrc`)
 - **PostgreSQL**: ต้องมี database `food_store_calculator` พร้อมใช้งาน
 - **Ports**: 
   - Backend: 3001
@@ -177,10 +177,18 @@ pnpm --filter @food-store-calculator/shared build
 # 4. Start database
 docker-compose up -d postgres
 
-# 5. Start backend (Terminal 1)
+# 5. Run migrations
+pnpm --filter @food-store-calculator/backend migrate
+
+# 6. Start backend (Terminal 1)
 pnpm --filter @food-store-calculator/backend dev
 
-# 6. Start frontend (Terminal 2)
+# 7. Start frontend (Terminal 2)
 pnpm --filter @food-store-calculator/frontend dev
 ```
 
+## 🔍 Useful URLs
+
+- Backend API: http://localhost:3001/api
+- Swagger Docs: http://localhost:3001/api/docs
+- Frontend UI: http://localhost:3000

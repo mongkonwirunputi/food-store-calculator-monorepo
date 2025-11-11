@@ -35,7 +35,12 @@
 
 2. **Order & Calculation**
    - ผู้ใช้สามารถเลือกจำนวนสินค้าต่อรายการ  
-   - ระบบคำนวณราคาและส่วนลดอัตโนมัติ  
+   - ระบบคำนวณราคาและส่วนลดอัตโนมัติ (Preview)  
+   - ต้องกด **Confirm Order** ใน Order Summary เพื่อบันทึกลงฐานข้อมูลจริง  
+   - แสดง Order History พร้อม line item และสถานะ Red Set
+
+3. **Discount Policy Panel**
+   - แสดงกฎส่วนลด (Pair, Member, Red Set restriction) ใต้หัวข้อ Products
 
 ---
 
@@ -49,11 +54,19 @@
 
 ## 5. API Specification
 
+เปิดดูเอกสารแบบ interactive ได้ที่ `http://localhost:3001/api/docs` (Swagger UI)
+
 ### `GET /api/products`
 > ดึงรายการสินค้าและราคา
 
 ### `POST /api/calculate`
 > รับออเดอร์จากลูกค้าและคำนวณราคาสุดท้าย
+
+### `POST /api/orders`
+> ยืนยันคำสั่งซื้อและบันทึกลงฐานข้อมูล (ใช้ payload เดียวกับ calculate)
+
+### `GET /api/orders`
+> ดึงรายการ order ล่าสุด พร้อม line item และ flag ว่ามี Red Set หรือไม่
 
 ### `GET /api/red-status`
 > ตรวจสอบสถานะ Red set
@@ -64,9 +77,11 @@
 
 **Components:**  
 - Product List  
+- Discount Policy (details/accordion)
 - Member Card Input  
-- Calculate Button  
-- Result Summary  
+- Calculate Button (preview)
+- Result Summary + Confirm Order  
+- Order History
 
 ---
 
@@ -90,11 +105,18 @@ memberDiscount = 10% ถ้ามี memberCard
 total = subtotal - pairDiscount - memberDiscount
 ```
 
+**Order Flow:**  
+1. ผู้ใช้กรอกจำนวนสินค้า → `POST /api/calculate` → ได้ preview ส่วนลด  
+2. ผู้ใช้กด Confirm → `POST /api/orders` → ตรวจ Red Set, Save orders/order_items, อัปเดต order history  
+3. UI refresh order history และ Red status อัตโนมัติ  
+
 ---
 
 ## 9. Testing
 
 Unit tests ตรวจสอบ logic ส่วนลดและข้อจำกัดการสั่ง Red set  
+Integration tests สำหรับ `/api/orders` และ `/api/red-status`  
+Frontend build/test ensures calculate + confirm flow compileสำเร็จ  
 
 ---
 

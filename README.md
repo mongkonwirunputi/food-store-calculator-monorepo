@@ -39,18 +39,27 @@ food-store-calculator/
 
 ## ✨ Features
 
-- **Product Management**: Display 7 products with prices
+- **Product Catalog**: Display 7 color sets with color-coded cards and inline restriction notes
+- **Discount Policy Panel**: One-click summary beside the catalog explaining every available discount
 - **Smart Discounts**:
   - Pair Discount (5%): Applied to pairs of Orange, Pink, or Green sets
   - Member Discount (10%): Applied when member card is provided
-- **Red Set Restriction**: Can only be ordered once per hour
-- **Real-time Calculation**: Instant price calculation with discount breakdown
-- **Modern UI**: Beautiful, responsive interface
+- **Red Set Restriction**: Backed by database + UI lock, with next-available countdown
+- **Two-step Ordering**: `Calculate Total` previews discounts, `Confirm Order` saves to history
+- **Order History Dashboard**: Lists confirmed orders with line-item breakdowns and Red Set indicators
+- **Swagger Docs**: Auto-generated API documentation at `/api/docs`
+- **Modern UI**: Responsive interface built with React hooks and Vite
+
+## 🔁 Order Flow
+1. เลือกสินค้าใน Product List (Red Set จะถูกล็อกเมื่อ cooldown ยังไม่หมด)
+2. กด **Calculate Total** เพื่อดู Subtotal + Discount breakdown แบบ real-time
+3. ตรวจสอบ Order Summary แล้วกด **Confirm Order** เพื่อบันทึก
+4. Order History จะรีเฟรชพร้อมแสดง line item, ราคา รวมถึง highlight order ที่มี Red Set
 
 ## 🛠️ Tech Stack
 
 ### Frontend
-- **React 18** with TypeScript
+- **React** with TypeScript
 - **Vite** for fast development and building
 - **Axios** for API communication
 
@@ -68,7 +77,7 @@ food-store-calculator/
 ## 📁 Project Structure
 
 ```
-food-store-calculator/
+food-store-calculator-monorepo/
 ├── apps/
 │   ├── backend/
 │   │   ├── src/
@@ -100,8 +109,8 @@ food-store-calculator/
 
 ### Prerequisites
 
-- **Node.js** >= 18.0.0
-- **pnpm** >= 8.0.0
+- **Node.js** >= 18.0.0 (project targets v24 via `.nvmrc`)
+- **pnpm** >= 8.0.0 (10.x recommended)
 - **Docker** and **Docker Compose** (optional, for containerized setup)
 
 ### Installation
@@ -109,7 +118,7 @@ food-store-calculator/
 1. **Clone the repository**
    ```bash
    git clone <repository-url>
-   cd food-store-calculator
+   cd food-store-calculator-monorepo
    ```
 
 2. **Install dependencies**
@@ -131,7 +140,12 @@ food-store-calculator/
    DB_NAME=food_store_calculator
    ```
 
-4. **Start services with Docker Compose**
+4. **Run database migrations + seeds**
+   ```bash
+   pnpm --filter @food-store-calculator/backend migrate
+   ```
+
+5. **Start services with Docker Compose**
    ```bash
    pnpm docker:up
    ```
@@ -200,6 +214,8 @@ food-store-calculator/
 - **Frontend**: Component-based React application with modern hooks
 
 ## 📡 API Documentation
+
+Interactive Swagger docs are available at **`http://localhost:3001/api/docs`** when the backend is running.
 
 ### Endpoints
 
@@ -272,24 +288,22 @@ or
 }
 ```
 
+#### `POST /api/orders`
+Confirm an order and persist it. Accepts the same payload as `/api/calculate` and responds with the stored order entry (id, totals, items, Red Set flag, timestamps).
+
+#### `GET /api/orders`
+Fetch confirmed orders. Supports `?limit=20` (default) up to 100 items and returns line items, line totals, member card data, and `hasRedSet`.
+
 ## 🧪 Testing
-
-### Backend Tests
-
 ```bash
-cd apps/backend
-pnpm test              # Unit tests
-pnpm test:watch        # Watch mode
-pnpm test:cov          # Coverage report
-pnpm test:e2e          # End-to-end tests
-```
+# Shared package (discount logic & types)
+pnpm --filter @food-store-calculator/shared test
 
-### Frontend Tests
+# Backend (NestJS)
+pnpm --filter @food-store-calculator/backend test
 
-```bash
-cd apps/frontend
-pnpm test              # Run tests
-pnpm test:watch        # Watch mode
+# Frontend type-check/build (ensures hooks/components compile)
+pnpm --filter @food-store-calculator/frontend build
 ```
 
 ## 🚢 Deployment
@@ -364,4 +378,3 @@ Built as a monorepo solution for scalable food store management.
 ---
 
 **Happy Coding! 🚀**
-

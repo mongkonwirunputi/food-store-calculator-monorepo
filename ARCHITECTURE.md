@@ -79,6 +79,12 @@ Located in `packages/shared/src/utils/discount.ts`:
 - **Logic**: Checks if Red Set was ordered in the last hour
 - **Storage**: PostgreSQL table `red_orders_log`
 - **Enforcement**: Validated in `OrdersService` before order processing
+- **UX Feedback**: Frontend disables the Red card and shows a countdown + next-available timestamp
+
+### Order Lifecycle
+- `POST /api/calculate`: Stateless preview. Performs validation and returns discount/subtotal/total.
+- `POST /api/orders`: Persists the order, saves `order_items`, logs Red usage, and returns a history entry.
+- `GET /api/orders`: Provides normalized order history (line items, totals, Red set flag) for the dashboard.
 
 ## Database Schema
 
@@ -95,8 +101,11 @@ Located in `packages/shared/src/utils/discount.ts`:
 
 ### RESTful Endpoints
 - `GET /api/products` - Get all products
-- `POST /api/calculate` - Calculate order with discounts
-- `GET /api/red-status` - Check Red Set availability
+- `POST /api/calculate` - Calculate order with discounts (preview only)
+- `POST /api/orders` - Confirm + persist an order
+- `GET /api/orders` - List confirmed orders with items
+- `GET /api/red-status` - Check Red Set availability + cooldown metadata
+- Swagger UI lives at `/api/docs`
 
 ### Error Handling
 - Validation errors via `class-validator`
@@ -112,7 +121,8 @@ App
 ├── ProductList
 │   └── ProductCard (per product)
 ├── MemberCardInput
-└── ResultSummary
+├── ResultSummary (preview + confirm)
+└── OrderHistory
 ```
 
 ### State Management
@@ -148,4 +158,3 @@ App
 - Environment-based configuration
 - Database migrations
 - Static frontend build served via nginx/CDN
-
