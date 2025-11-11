@@ -27,6 +27,11 @@
   background: #fff5f5;
 }
 
+.product-card--locked {
+  opacity: 0.6;
+  border-style: dashed;
+}
+
 .product-card:hover {
   border-color: #667eea;
   box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);

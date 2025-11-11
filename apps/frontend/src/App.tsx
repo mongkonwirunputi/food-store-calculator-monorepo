@@ -5,6 +5,7 @@ import {
   OrderItem,
   CalculateResponse,
   OrderHistoryEntry,
+  RedStatusResponse,
 } from '@food-store-calculator/shared';
 import { api } from './services/api';
 import ProductList from './components/ProductList';
@@ -24,6 +25,7 @@ function App() {
   const [ordersLoading, setOrdersLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [orderHistory, setOrderHistory] = useState<OrderHistoryEntry[]>([]);
+  const [redStatus, setRedStatus] = useState<RedStatusResponse | null>(null);
 
   const loadProducts = useCallback(async () => {
     setProductsLoading(true);
@@ -58,6 +60,15 @@ function App() {
     }
   }, []);
 
+  const loadRedStatus = useCallback(async () => {
+    try {
+      const data = await api.getRedStatus();
+      setRedStatus(data);
+    } catch (err) {
+      console.error('Failed to load red status', err);
+    }
+  }, []);
+
   useEffect(() => {
     loadProducts();
   }, [loadProducts]);
@@ -65,6 +76,12 @@ function App() {
   useEffect(() => {
     loadOrders();
   }, [loadOrders]);
+
+  useEffect(() => {
+    loadRedStatus();
+    const interval = setInterval(loadRedStatus, 30000);
+    return () => clearInterval(interval);
+  }, [loadRedStatus]);
 
   const handleQuantityChange = (productId: ProductId, quantity: number) => {
     setOrderItems((prev) =>
@@ -118,6 +135,7 @@ function App() {
               <ProductList
                 products={products}
                 orderItems={orderItems}
+                redStatus={redStatus}
                 onQuantityChange={handleQuantityChange}
               />
             )}

@@ -81,7 +81,7 @@ export class OrdersService {
 
   async getOrderHistory(limit: number): Promise<OrderHistoryEntry[]> {
     const orders = await this.orderRepository.find({
-      relations: ['items'],
+      relations: { items: true },
       order: {
         created_at: 'DESC',
       },
@@ -89,7 +89,7 @@ export class OrdersService {
     });
 
     return orders.map(order => {
-      const items: OrderHistoryLineItem[] = order.items.map(item => {
+      const items: OrderHistoryLineItem[] = (order.items ?? []).map(item => {
         const product = this.productLookup.get(item.productId as ProductId);
         const unitPrice = product?.price ?? 0;
         return {
