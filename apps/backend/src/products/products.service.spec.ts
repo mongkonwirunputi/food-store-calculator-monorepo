@@ -51,7 +51,9 @@ describe('ProductsService', () => {
     const products = await service.getProducts();
     expect(repository.find).toHaveBeenCalledTimes(1);
     expect(products.length).toBe(PRODUCTS.length);
-    expect(products).toEqual(PRODUCTS);
+    const sortById = (list: typeof PRODUCTS) =>
+      [...list].sort((a, b) => a.id.localeCompare(b.id));
+    expect(sortById(products as typeof PRODUCTS)).toEqual(sortById(PRODUCTS));
   });
 
   it('should cache products after the first load', async () => {

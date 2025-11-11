@@ -29,3 +29,20 @@ export interface RedStatusResponse {
   remainingTimeMs?: number;
   message?: string;
 }
+
+export interface OrderHistoryLineItem {
+  productId: ProductId;
+  productName: string;
+  quantity: number;
+  unitPrice: number;
+  lineTotal: number;
+}
+
+export interface OrderHistoryEntry {
+  id: number;
+  total: number;
+  createdAt: string;
+  memberCard?: string | null;
+  hasRedSet: boolean;
+  items: OrderHistoryLineItem[];
+}

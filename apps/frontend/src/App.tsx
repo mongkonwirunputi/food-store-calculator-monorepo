@@ -1,10 +1,17 @@
-import { useState, useEffect } from 'react';
-import { Product, ProductId, OrderItem, CalculateResponse } from '@food-store-calculator/shared';
+import { useState, useEffect, useCallback } from 'react';
+import {
+  Product,
+  ProductId,
+  OrderItem,
+  CalculateResponse,
+  OrderHistoryEntry,
+} from '@food-store-calculator/shared';
 import { api } from './services/api';
 import ProductList from './components/ProductList';
 import MemberCardInput from './components/MemberCardInput';
 import ResultSummary from './components/ResultSummary';
 import RedStatusIndicator from './components/RedStatusIndicator';
+import OrderHistory from './components/OrderHistory';
 import './App.css';
 
 function App() {
@@ -14,13 +21,11 @@ function App() {
   const [calculation, setCalculation] = useState<CalculateResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [productsLoading, setProductsLoading] = useState(true);
+  const [ordersLoading, setOrdersLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [orderHistory, setOrderHistory] = useState<OrderHistoryEntry[]>([]);
 
-  useEffect(() => {
-    loadProducts();
-  }, []);
-
-  const loadProducts = async () => {
+  const loadProducts = useCallback(async () => {
     setProductsLoading(true);
     setError(null);
     try {
@@ -39,7 +44,27 @@ function App() {
     } finally {
       setProductsLoading(false);
     }
-  };
+  }, []);
+
+  const loadOrders = useCallback(async () => {
+    setOrdersLoading(true);
+    try {
+      const data = await api.getOrderHistory();
+      setOrderHistory(data);
+    } catch (err) {
+      console.error('Failed to load orders', err);
+    } finally {
+      setOrdersLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadProducts();
+  }, [loadProducts]);
+
+  useEffect(() => {
+    loadOrders();
+  }, [loadOrders]);
 
   const handleQuantityChange = (productId: ProductId, quantity: number) => {
     setOrderItems((prev) =>
@@ -66,6 +91,7 @@ function App() {
         memberCard: memberCard || undefined,
       });
       setCalculation(result);
+      await loadOrders();
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to calculate');
       console.error(err);
@@ -114,6 +140,7 @@ function App() {
 
           <div className="right-panel">
             {calculation && <ResultSummary calculation={calculation} />}
+            <OrderHistory orders={orderHistory} loading={ordersLoading} />
           </div>
         </div>
       </div>
@@ -122,4 +149,3 @@ function App() {
 }
 
 export default App;
-

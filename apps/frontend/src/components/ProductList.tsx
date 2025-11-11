@@ -1,4 +1,4 @@
-import { Product, ProductId, OrderItem } from '@food-store-calculator/shared';
+import type { Product, ProductId, OrderItem } from '@food-store-calculator/shared';
 import './ProductList.css';
 
 interface ProductListProps {
@@ -12,6 +12,16 @@ export default function ProductList({
   orderItems,
   onQuantityChange,
 }: ProductListProps) {
+  const colorMap: Record<string, string> = {
+    red: '#ef4444',
+    green: '#22c55e',
+    blue: '#3b82f6',
+    yellow: '#eab308',
+    pink: '#ec4899',
+    purple: '#a855f7',
+    orange: '#f97316',
+  };
+
   const getQuantity = (productId: ProductId): number => {
     const item = orderItems.find((item) => item.productId === productId);
     return item?.quantity || 0;
@@ -24,11 +34,17 @@ export default function ProductList({
         {products.map((product) => {
           const quantity = getQuantity(product.id);
           return (
-            <div key={product.id} className="product-card">
+            <div
+              key={product.id}
+              className={`product-card${product.id === 'red' ? ' product-card--limited' : ''}`}
+            >
               <div className="product-info">
-                <h3>{product.name}</h3>
+                <h3 style={{ color: colorMap[product.id] ?? '#333' }}>{product.name}</h3>
                 <p className="product-price">฿{product.price.toFixed(2)}</p>
               </div>
+              {product.id === 'red' && (
+                <p className="product-remark">สั่งได้เพียง 1 order ต่อ 1 ชั่วโมง</p>
+              )}
               <div className="quantity-controls">
                 <button
                   className="quantity-button"
@@ -52,4 +68,3 @@ export default function ProductList({
     </div>
   );
 }
-

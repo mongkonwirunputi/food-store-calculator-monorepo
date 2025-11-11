@@ -5,7 +5,10 @@ import {
   CalculateRequest,
   CalculateResponse,
   calculateDiscounts,
+  OrderHistoryEntry,
+  OrderHistoryLineItem,
   ProductId,
+  PRODUCTS,
 } from '@food-store-calculator/shared';
 import { Order } from './entities/order.entity';
 import { OrderItem } from './entities/order-item.entity';
@@ -20,6 +23,10 @@ export class OrdersService {
     private orderItemRepository: Repository<OrderItem>,
     private redStatusService: RedStatusService
   ) {}
+
+  private readonly productLookup = new Map(
+    PRODUCTS.map(product => [product.id, product])
+  );
 
   async calculate(request: CalculateRequest): Promise<CalculateResponse> {
     const { items, memberCard } = request;
@@ -71,5 +78,39 @@ export class OrdersService {
       total: calculation.total,
     };
   }
-}
 
+  async getOrderHistory(limit: number): Promise<OrderHistoryEntry[]> {
+    const orders = await this.orderRepository.find({
+      relations: ['items'],
+      order: {
+        created_at: 'DESC',
+      },
+      take: limit,
+    });
+
+    return orders.map(order => {
+      const items: OrderHistoryLineItem[] = order.items.map(item => {
+        const product = this.productLookup.get(item.productId as ProductId);
+        const unitPrice = product?.price ?? 0;
+        return {
+          productId: item.productId as ProductId,
+          productName: product?.name ?? item.productId,
+          quantity: item.quantity,
+          unitPrice,
+          lineTotal: unitPrice * item.quantity,
+        };
+      });
+
+      const hasRedSet = items.some(item => item.productId === ProductId.RED && item.quantity > 0);
+
+      return {
+        id: order.id,
+        total: Number(order.total),
+        memberCard: order.memberCard,
+        createdAt: order.created_at.toISOString(),
+        hasRedSet,
+        items,
+      };
+    });
+  }
+}

@@ -1,5 +1,11 @@
 import axios from 'axios';
-import { Product, CalculateRequest, CalculateResponse, RedStatusResponse } from '@food-store-calculator/shared';
+import {
+  Product,
+  CalculateRequest,
+  CalculateResponse,
+  RedStatusResponse,
+  OrderHistoryEntry,
+} from '@food-store-calculator/shared';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 
@@ -25,5 +31,11 @@ export const api = {
     const response = await apiClient.get<RedStatusResponse>('/red-status');
     return response.data;
   },
-};
 
+  async getOrderHistory(limit = 20): Promise<OrderHistoryEntry[]> {
+    const response = await apiClient.get<OrderHistoryEntry[]>('/orders', {
+      params: { limit },
+    });
+    return response.data;
+  },
+};
