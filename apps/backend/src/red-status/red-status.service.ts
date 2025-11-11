@@ -4,6 +4,8 @@ import { Repository, MoreThan } from 'typeorm';
 import { RedStatusResponse } from '@food-store-calculator/shared';
 import { RedOrderLog } from './entities/red-order-log.entity';
 
+const RED_SET_COOLDOWN_MS = 60 * 60 * 1000; // 1 hour
+
 @Injectable()
 export class RedStatusService {
   constructor(
@@ -12,8 +14,7 @@ export class RedStatusService {
   ) {}
 
   async checkRedStatus(): Promise<RedStatusResponse> {
-    const oneHourAgo = new Date();
-    oneHourAgo.setHours(oneHourAgo.getHours() - 1);
+    const oneHourAgo = new Date(Date.now() - RED_SET_COOLDOWN_MS);
 
     const recentOrder = await this.redOrderLogRepository.findOne({
       where: {
@@ -25,9 +26,15 @@ export class RedStatusService {
     });
 
     if (recentOrder) {
+      const lastOrderedAt = recentOrder.orderedAt;
+      const nextAvailableAt = new Date(lastOrderedAt.getTime() + RED_SET_COOLDOWN_MS);
+      const remainingTimeMs = Math.max(0, nextAvailableAt.getTime() - Date.now());
+
       return {
         canOrder: false,
-        lastOrderedAt: recentOrder.orderedAt.toISOString(),
+        lastOrderedAt: lastOrderedAt.toISOString(),
+        nextAvailableAt: nextAvailableAt.toISOString(),
+        remainingTimeMs,
         message: 'Red Set can only be ordered once per hour',
       };
     }
@@ -35,6 +42,7 @@ export class RedStatusService {
     return {
       canOrder: true,
       message: 'Red Set is available to order',
+      remainingTimeMs: 0,
     };
   }
 
@@ -45,4 +53,3 @@ export class RedStatusService {
     await this.redOrderLogRepository.save(log);
   }
 }
-

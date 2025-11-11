@@ -59,7 +59,7 @@ export class ProductsService implements OnModuleInit {
   private async loadProductsFromDatabase(): Promise<ProductType[]> {
     const dbProducts = await this.productRepository.find({
       select: ['id', 'name', 'price'],
-      order: { id: 'ASC' },
+      order: { price: 'ASC' },
     });
 
     if (dbProducts.length === 0) {
@@ -85,6 +85,7 @@ export class ProductsService implements OnModuleInit {
           if (!this.cachedProducts) {
             this.cachedProducts = PRODUCTS;
           }
+          // Sort the cached products by price in ascending order before returning.
           return this.cachedProducts;
         } finally {
           this.loadingPromise = null;
@@ -96,6 +97,7 @@ export class ProductsService implements OnModuleInit {
   }
 
   async getProducts(): Promise<ProductType[]> {
-    return this.ensureProductsCached();
+    const products = await this.ensureProductsCached();
+    return products.sort((a, b) => a.price - b.price);
   }
 }

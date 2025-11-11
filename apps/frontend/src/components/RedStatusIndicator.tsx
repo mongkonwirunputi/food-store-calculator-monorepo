@@ -9,20 +9,34 @@ export default function RedStatusIndicator() {
   const [remainingTime, setRemainingTime] = useState<number | null>(null);
   const [nextAvailableTime, setNextAvailableTime] = useState<Date | null>(null);
 
+  const getRemainingTime = (data: RedStatusResponse): number | null => {
+    if (typeof data.remainingTimeMs === 'number') {
+      return data.remainingTimeMs;
+    }
+    if (data.nextAvailableAt) {
+      return Math.max(0, new Date(data.nextAvailableAt).getTime() - Date.now());
+    }
+    return null;
+  };
+
+  const getNextAvailableDate = (data: RedStatusResponse, fallbackMs: number | null): Date | null => {
+    if (data.nextAvailableAt) {
+      return new Date(data.nextAvailableAt);
+    }
+    if (fallbackMs && fallbackMs > 0) {
+      return new Date(Date.now() + fallbackMs);
+    }
+    return null;
+  };
+
   const loadStatus = useCallback(async () => {
     try {
       const data = await api.getRedStatus();
       setStatus(data);
-      
-      if (data.remainingTimeMs !== undefined && data.remainingTimeMs > 0) {
-        setRemainingTime(data.remainingTimeMs);
-        // Calculate next available time
-        const nextTime = new Date(Date.now() + data.remainingTimeMs);
-        setNextAvailableTime(nextTime);
-      } else {
-        setRemainingTime(null);
-        setNextAvailableTime(null);
-      }
+
+      const derivedRemaining = getRemainingTime(data);
+      setRemainingTime(derivedRemaining && derivedRemaining > 0 ? derivedRemaining : null);
+      setNextAvailableTime(getNextAvailableDate(data, derivedRemaining));
     } catch (err) {
       console.error('Failed to load red status', err);
     } finally {
@@ -37,24 +51,33 @@ export default function RedStatusIndicator() {
   }, [loadStatus]);
 
   useEffect(() => {
-    if (status && !status.canOrder && status.remainingTimeMs !== undefined && status.remainingTimeMs > 0) {
-      setRemainingTime(status.remainingTimeMs);
-      
-      const countdownInterval = setInterval(() => {
-        setRemainingTime((prev) => {
-          if (prev === null || prev <= 1000) {
-            loadStatus(); // Reload status when countdown reaches 0
-            return 0;
-          }
-          return prev - 1000;
-        });
-      }, 1000);
-
-      return () => clearInterval(countdownInterval);
-    } else {
+    if (!status || status.canOrder) {
       setRemainingTime(null);
       setNextAvailableTime(null);
+      return;
     }
+
+    const initialRemaining = getRemainingTime(status);
+    const nextTime = getNextAvailableDate(status, initialRemaining);
+
+    setNextAvailableTime(nextTime);
+    setRemainingTime(initialRemaining && initialRemaining > 0 ? initialRemaining : null);
+
+    if (initialRemaining === null || initialRemaining <= 0) {
+      return;
+    }
+
+    const countdownInterval = setInterval(() => {
+      setRemainingTime((prev) => {
+        if (prev === null || prev <= 1000) {
+          loadStatus(); // Reload status when countdown reaches 0
+          return 0;
+        }
+        return prev - 1000;
+      });
+    }, 1000);
+
+    return () => clearInterval(countdownInterval);
   }, [status, loadStatus]);
 
   const formatTime = (ms: number): string => {
@@ -125,4 +148,3 @@ export default function RedStatusIndicator() {
     </div>
   );
 }
-

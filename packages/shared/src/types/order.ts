@@ -25,6 +25,7 @@ export interface CalculateResponse {
 export interface RedStatusResponse {
   canOrder: boolean;
   lastOrderedAt?: string;
+  nextAvailableAt?: string;
+  remainingTimeMs?: number;
   message?: string;
 }
-
