@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import {
+import type {
   Product,
   ProductId,
   OrderItem,
@@ -26,10 +26,13 @@ function App() {
   const [error, setError] = useState<string | null>(null);
   const [orderHistory, setOrderHistory] = useState<OrderHistoryEntry[]>([]);
   const [redStatus, setRedStatus] = useState<RedStatusResponse | null>(null);
+  const [confirming, setConfirming] = useState(false);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const loadProducts = useCallback(async () => {
     setProductsLoading(true);
     setError(null);
+    setSuccessMessage(null);
     try {
       const data = await api.getProducts();
       setProducts(data);
@@ -90,6 +93,7 @@ function App() {
       )
     );
     setCalculation(null);
+    setSuccessMessage(null);
   };
 
   const handleCalculate = async () => {
@@ -101,6 +105,7 @@ function App() {
 
     setLoading(true);
     setError(null);
+    setSuccessMessage(null);
 
     try {
       const result = await api.calculate({
@@ -116,6 +121,46 @@ function App() {
       setLoading(false);
     }
   };
+
+  const handleConfirmOrder = async () => {
+    const items = orderItems.filter((item) => item.quantity > 0);
+    if (!calculation || items.length === 0) {
+      setError('Please calculate your order before confirming');
+      return;
+    }
+
+    setConfirming(true);
+    setError(null);
+    try {
+      await api.createOrder({
+        items,
+        memberCard: memberCard || undefined,
+      });
+      setSuccessMessage('Order placed successfully!');
+      setCalculation(null);
+      setOrderItems((prev) =>
+        prev.map((item) => ({
+          ...item,
+          quantity: 0,
+        }))
+      );
+      await Promise.all([loadOrders(), loadRedStatus()]);
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Failed to place order');
+    } finally {
+      setConfirming(false);
+    }
+  };
+
+  const selectedItemsCount = orderItems.filter((item) => item.quantity > 0).length;
+  const hasRedSetSelected = orderItems.some(
+    (item) => item.productId === 'red' && item.quantity > 0
+  );
+  const redLocked = redStatus ? !redStatus.canOrder : false;
+  const confirmDisabled =
+    !calculation ||
+    selectedItemsCount === 0 ||
+    (redLocked && hasRedSetSelected);
 
   return (
     <div className="app">
@@ -154,10 +199,18 @@ function App() {
             </button>
 
             {error && <div className="error-message">{error}</div>}
+            {successMessage && <div className="success-message">{successMessage}</div>}
           </div>
 
           <div className="right-panel">
-            {calculation && <ResultSummary calculation={calculation} />}
+            {calculation && (
+              <ResultSummary
+                calculation={calculation}
+                onConfirm={handleConfirmOrder}
+                confirming={confirming}
+                disabled={confirmDisabled || confirming}
+              />
+            )}
             <OrderHistory orders={orderHistory} loading={ordersLoading} />
           </div>
         </div>

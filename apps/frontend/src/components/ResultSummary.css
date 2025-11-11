@@ -43,3 +43,26 @@
   border-top: 2px solid rgba(255, 255, 255, 0.3);
 }
 
+.confirm-order-button {
+  margin-top: 16px;
+  width: 100%;
+  background: #22c55e;
+  color: #0f172a;
+  border: none;
+  border-radius: 8px;
+  padding: 12px;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.1s;
+}
+
+.confirm-order-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.confirm-order-button:not(:disabled):hover {
+  background: #16a34a;
+  transform: translateY(-1px);
+}

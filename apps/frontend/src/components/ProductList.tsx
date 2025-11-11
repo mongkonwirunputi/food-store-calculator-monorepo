@@ -4,7 +4,7 @@ import './ProductList.css';
 interface ProductListProps {
   products: Product[];
   orderItems: OrderItem[];
-  redStatus: { canOrder: boolean } | null;
+  redStatus?: { canOrder: boolean } | null;
   onQuantityChange: (productId: ProductId, quantity: number) => void;
 }
 
@@ -32,6 +32,14 @@ export default function ProductList({
   return (
     <div className="product-list">
       <h2>Products</h2>
+      <details className="discount-policy">
+        <summary>Noted: </summary>
+        <ul>
+          <li>คู่สินค้า (Orange, Pink, Green) จะได้ส่วนลด 5%</li>
+          <li>สมาชิกจะได้รับส่วนลดเพิ่ม 10%</li>
+          <li>Red Set จำกัด 1 order ต่อ 1 ชั่วโมง</li>
+        </ul>
+      </details>
       <div className="products-grid">
         {products.map((product) => {
           const quantity = getQuantity(product.id);

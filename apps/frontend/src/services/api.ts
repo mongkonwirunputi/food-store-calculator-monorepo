@@ -38,4 +38,9 @@ export const api = {
     });
     return response.data;
   },
+
+  async createOrder(request: CalculateRequest): Promise<OrderHistoryEntry> {
+    const response = await apiClient.post<OrderHistoryEntry>('/orders', request);
+    return response.data;
+  },
 };

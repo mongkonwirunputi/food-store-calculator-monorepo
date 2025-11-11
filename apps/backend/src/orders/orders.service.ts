@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import {
   CalculateRequest,
   CalculateResponse,
+  OrderItem as OrderItemPayload,
   calculateDiscounts,
   OrderHistoryEntry,
   OrderHistoryLineItem,
@@ -31,34 +32,30 @@ export class OrdersService {
   async calculate(request: CalculateRequest): Promise<CalculateResponse> {
     const { items, memberCard } = request;
 
-    // Check if Red Set is in the order
-    const hasRedSet = items.some(
-      (item) => item.productId === ProductId.RED && item.quantity > 0
-    );
-
-    if (hasRedSet) {
-      // Check if Red Set can be ordered
-      const redStatus = await this.redStatusService.checkRedStatus();
-      if (!redStatus.canOrder) {
-        throw new BadRequestException({
-          message: redStatus.message || 'Red Set can only be ordered once per hour',
-          lastOrderedAt: redStatus.lastOrderedAt,
-        });
-      }
-    }
+    await this.ensureRedSetAllowed(items);
 
     // Calculate discounts using shared logic
     const calculation = calculateDiscounts(items, !!memberCard);
+    return {
+      subtotal: calculation.subtotal,
+      discounts: calculation.discounts,
+      total: calculation.total,
+    };
+  }
 
-    // Save order to database (optional, for history)
+  async placeOrder(request: CalculateRequest): Promise<OrderHistoryEntry> {
+    const { items, memberCard } = request;
+    await this.ensureRedSetAllowed(items);
+
+    const calculation = calculateDiscounts(items, !!memberCard);
+
     const order = this.orderRepository.create({
       total: calculation.total,
       memberCard: memberCard || null,
     });
     const savedOrder = await this.orderRepository.save(order);
 
-    // Save order items
-    const orderItems = items.map((item) =>
+    const orderItems = items.map(item =>
       this.orderItemRepository.create({
         orderId: savedOrder.id,
         productId: item.productId,
@@ -67,16 +64,17 @@ export class OrdersService {
     );
     await this.orderItemRepository.save(orderItems);
 
-    // Log Red Set order if present
+    const hasRedSet = this.containsRedSet(items);
     if (hasRedSet) {
       await this.redStatusService.logRedOrder();
     }
 
-    return {
-      subtotal: calculation.subtotal,
-      discounts: calculation.discounts,
-      total: calculation.total,
-    };
+    const savedOrderWithItems = await this.orderRepository.findOne({
+      where: { id: savedOrder.id },
+      relations: { items: true },
+    });
+
+    return this.mapOrderToHistoryEntry(savedOrderWithItems ?? savedOrder);
   }
 
   async getOrderHistory(limit: number): Promise<OrderHistoryEntry[]> {
@@ -88,29 +86,50 @@ export class OrdersService {
       take: limit,
     });
 
-    return orders.map(order => {
-      const items: OrderHistoryLineItem[] = (order.items ?? []).map(item => {
-        const product = this.productLookup.get(item.productId as ProductId);
-        const unitPrice = product?.price ?? 0;
-        return {
-          productId: item.productId as ProductId,
-          productName: product?.name ?? item.productId,
-          quantity: item.quantity,
-          unitPrice,
-          lineTotal: unitPrice * item.quantity,
-        };
+    return orders.map(order => this.mapOrderToHistoryEntry(order));
+  }
+
+  private containsRedSet(items: OrderItemPayload[]): boolean {
+    return items.some(item => item.productId === ProductId.RED && item.quantity > 0);
+  }
+
+  private async ensureRedSetAllowed(items: OrderItemPayload[]): Promise<void> {
+    if (!this.containsRedSet(items)) {
+      return;
+    }
+
+    const redStatus = await this.redStatusService.checkRedStatus();
+    if (!redStatus.canOrder) {
+      throw new BadRequestException({
+        message: redStatus.message || 'Red Set can only be ordered once per hour',
+        lastOrderedAt: redStatus.lastOrderedAt,
+        nextAvailableAt: redStatus.nextAvailableAt,
       });
+    }
+  }
 
-      const hasRedSet = items.some(item => item.productId === ProductId.RED && item.quantity > 0);
-
+  private mapOrderToHistoryEntry(order: Order): OrderHistoryEntry {
+    const items: OrderHistoryLineItem[] = (order.items ?? []).map(item => {
+      const product = this.productLookup.get(item.productId as ProductId);
+      const unitPrice = product?.price ?? 0;
       return {
-        id: order.id,
-        total: Number(order.total),
-        memberCard: order.memberCard,
-        createdAt: order.created_at.toISOString(),
-        hasRedSet,
-        items,
+        productId: item.productId as ProductId,
+        productName: product?.name ?? item.productId,
+        quantity: item.quantity,
+        unitPrice,
+        lineTotal: unitPrice * item.quantity,
       };
     });
+
+    const hasRedSet = items.some(item => item.productId === ProductId.RED && item.quantity > 0);
+
+    return {
+      id: order.id,
+      total: Number(order.total),
+      memberCard: order.memberCard,
+      createdAt: order.created_at instanceof Date ? order.created_at.toISOString() : new Date(order.created_at).toISOString(),
+      hasRedSet,
+      items,
+    };
   }
 }

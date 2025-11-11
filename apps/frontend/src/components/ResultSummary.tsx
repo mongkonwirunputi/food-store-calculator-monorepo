@@ -3,9 +3,12 @@ import './ResultSummary.css';
 
 interface ResultSummaryProps {
   calculation: CalculateResponse;
+  onConfirm: () => void;
+  confirming: boolean;
+  disabled?: boolean;
 }
 
-export default function ResultSummary({ calculation }: ResultSummaryProps) {
+export default function ResultSummary({ calculation, onConfirm, confirming, disabled }: ResultSummaryProps) {
   const { subtotal, discounts, total } = calculation;
 
   return (
@@ -40,7 +43,14 @@ export default function ResultSummary({ calculation }: ResultSummaryProps) {
           <span>฿{total.toFixed(2)}</span>
         </div>
       </div>
+
+      <button
+        className="confirm-order-button"
+        onClick={onConfirm}
+        disabled={disabled || confirming}
+      >
+        {confirming ? 'Submitting...' : 'Confirm Order'}
+      </button>
     </div>
   );
 }
-

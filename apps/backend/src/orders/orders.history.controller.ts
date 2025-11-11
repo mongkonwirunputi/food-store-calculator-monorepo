@@ -1,7 +1,8 @@
-import { Controller, Get, Query } from '@nestjs/common';
+import { Body, Controller, Get, Post, Query } from '@nestjs/common';
 import { OrdersService } from './orders.service';
-import { ApiOkResponse, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
+import { ApiCreatedResponse, ApiOkResponse, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { OrderHistoryResponseDto } from './dto/order-history-response.dto';
+import { CalculateRequestDto } from './dto/calculate-request.dto';
 
 @ApiTags('Orders')
 @Controller('orders')
@@ -23,5 +24,12 @@ export class OrdersHistoryController {
       Number.isFinite(sanitizedLimit) && sanitizedLimit > 0 ? Math.min(sanitizedLimit, 100) : 20;
 
     return this.ordersService.getOrderHistory(resolvedLimit);
+  }
+
+  @Post()
+  @ApiOperation({ summary: 'Confirm an order and persist it', operationId: 'createOrder' })
+  @ApiCreatedResponse({ type: OrderHistoryResponseDto })
+  async createOrder(@Body() request: CalculateRequestDto): Promise<OrderHistoryResponseDto> {
+    return this.ordersService.placeOrder(request);
   }
 }
