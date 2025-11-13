@@ -200,7 +200,7 @@ food-store-calculator-monorepo/
 - `pnpm docker:down` - Stop Docker containers
 
 **Backend:**
-- `pnpm --filter @food-store-calculator/backend dev` - Start backend in watch mode
+- `pnpm --filter @food-store-calculator/backend start:dev` - Start backend in watch mode
 - `pnpm --filter @food-store-calculator/backend test` - Run backend tests
 
 **Frontend:**
